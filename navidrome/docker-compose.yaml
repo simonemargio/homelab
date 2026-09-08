@@ -1,0 +1,80 @@
+# Music streaming service
+services:
+  navidrome:
+    image: deluan/navidrome:0.63.2
+    container_name: navidrome
+    user: 1000:100
+    ports:
+      - "4533:4533"
+    restart: unless-stopped
+    environment:
+      - ND_CONFIGFILE=/data/navidrome.toml
+      - ND_BACKUP_PATH=/backup
+      - ND_BACKUP_SCHEDULE=0 0 * * *
+      - ND_BACKUP_COUNT=7
+      - ND_LISTENBRAINZ_ENABLED=true
+      - ND_LISTENBRAINZ_BASEURL=http://scrobble-router:80/1
+    volumes:
+      - "/mnt/cache/container/appdata/navidrome/data:/data"
+      - "/mnt/cache/container/data/music:/music:ro"
+      - "/mnt/cache/container/appdata/navidrome/backup:/backup"
+    networks:
+      - container-share-net
+    healthcheck:
+          test: ["CMD", "wget", "-qO-", "http://localhost:4533/ping"]
+          interval: 10m
+          timeout: 10s
+          retries: 3
+          start_period: 1m
+          start_interval: 5s
+
+  # Proxy of the Listenbrains / Koito
+  scrobble-router:
+    image: nginx:alpine
+    container_name: scrobble-router
+    restart: unless-stopped
+    networks:
+      - container-share-net
+    command:
+      - /bin/sh
+      - -c
+      - |
+        cat << 'EOF' > /etc/nginx/nginx.conf
+        events {}
+        http {
+            map_hash_bucket_size 128;
+            resolver 1.1.1.1 8.8.8.8 ipv6=off;
+            
+            map $$http_authorization $$target_url {
+                default "https://api.listenbrainz.org$$request_uri";
+                "~*${SCROBBLE_TOKEN}" "http://${KOITO_IP}:4110/apis/listenbrainz$$request_uri";
+            }
+            
+            map $$http_authorization $$target_host {
+                default "api.listenbrainz.org";
+                "~*${SCROBBLE_TOKEN}" "${KOITO_IP}:4110";
+            }
+            
+            server {
+                listen 80;
+                location / {
+                    proxy_pass $$target_url;
+                    
+                    proxy_http_version 1.1;
+                    proxy_set_header Connection "";
+                    
+                    proxy_ssl_server_name on;
+                    proxy_ssl_name $$target_host;
+                    
+                    proxy_set_header Host $$target_host;
+                    proxy_set_header X-Real-IP $$remote_addr;
+                    proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                }
+            }
+        }
+        EOF
+        nginx -g 'daemon off;'
+
+networks:
+  container-share-net:
+    external: true
