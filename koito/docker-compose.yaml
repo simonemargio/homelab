@@ -1,0 +1,29 @@
+# Navidrome Wrapped
+services:
+  koito:
+    image: gabehf/koito:latest
+    container_name: koito
+    deploy:
+      resources:
+        limits:
+          memory: 812M
+    ports:
+      - "4110:4110"
+    volumes:
+      - "/mnt/cache/container/appdata/koito:/etc/koito"
+    restart: unless-stopped
+    environment:
+      - KOITO_DEFAULT_THEME=black
+      - KOITO_SUBSONIC_URL=http://navidrome:4533
+      - KOITO_ENABLE_LBZ_RELAY=true
+      - KOITO_LBZ_RELAY_URL=https://api.listenbrainz.org/1
+      - KOITO_DEFAULT_USERNAME=${KOITO_DEFAULT_USERNAME}
+      - KOITO_DEFAULT_PASSWORD=${KOITO_DEFAULT_PASSWORD}
+      - KOITO_SUBSONIC_PARAMS=${KOITO_SUBSONIC_PARAMS}
+      - KOITO_LBZ_RELAY_TOKEN=${KOITO_LBZ_RELAY_TOKEN}
+    networks:
+      - container-share-net
+
+networks:
+  container-share-net:
+    external: true
