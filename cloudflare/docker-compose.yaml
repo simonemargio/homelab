@@ -1,0 +1,23 @@
+# Tunnel VPN
+services:
+  cloudflare-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflare-tunnel
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+      - TUNNEL_METRICS=0.0.0.0:60123
+    restart: unless-stopped
+    networks:
+      - container-share-net
+    healthcheck:
+          test: ["CMD", "cloudflared", "tunnel", "ready"]
+          interval: 1m
+          timeout: 10s
+          retries: 3
+          start_period: 30s
+          start_interval: 5s
+
+networks:
+  container-share-net:
+    external: true
