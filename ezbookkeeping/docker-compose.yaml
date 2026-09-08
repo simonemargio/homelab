@@ -1,0 +1,48 @@
+# Personal finance app
+services:
+  ezbookkeeping:
+    image: mayswind/ezbookkeeping:latest
+    container_name: ezbookkeeping
+    hostname: ezbookkeeping
+    restart: unless-stopped
+    ports:
+      - "8085:8080"
+    environment:
+      - TZ=Europe/Rome
+      - EBK_GLOBAL_APP_NAME=Wallet
+      - EBK_LOG_MODE=console file
+      - EBK_LOG_LEVEL=${EBK_LOG_LEVEL}
+      - EBK_SECURITY_SECRET_KEY=${EBK_SECURITY_SECRET_KEY}
+      - EBK_USER_ENABLE_REGISTER=${EBK_USER_ENABLE_REGISTER}
+      - EBK_SERVER_DOMAIN=${EBK_SERVER_DOMAIN}
+      - EBK_SERVER_ROOT_URL=${EBK_SERVER_ROOT_URL}
+      - EBK_AUTH_ENABLE_FORGET_PASSWORD=${EBK_AUTH_ENABLE_FORGET_PASSWORD}
+      - EBK_DATABASE_TYPE=${EBK_DATABASE_TYPE}
+      - EBK_DATABASE_DB_PATH=${EBK_DATABASE_DB_PATH}
+      - EBK_USER_AVATAR_PROVIDER=${EBK_USER_AVATAR_PROVIDER}
+      - EBK_SERVER_ENABLE_GZIP=${EBK_SERVER_ENABLE_GZIP}
+      # Email configuration
+      - EBK_MAIL_ENABLE_SMTP=${EBK_MAIL_ENABLE_SMTP}
+      - EBK_MAIL_SMTP_HOST=${EBK_MAIL_SMTP_HOST}
+      - EBK_MAIL_SMTP_USER=${EBK_MAIL_SMTP_USER}
+      - EBK_MAIL_SMTP_PASSWD=${EBK_MAIL_SMTP_PASSWD}
+      - EBK_MAIL_FROM_ADDRESS=${EBK_MAIL_FROM_ADDRESS}
+      - EBK_MAIL_SMTP_SKIP_TLS_VERIFY=${EBK_MAIL_SMTP_SKIP_TLS_VERIFY}
+      - EBK_USER_ENABLE_EMAIL_VERIFY=${EBK_USER_ENABLE_EMAIL_VERIFY}
+      - EBK_USER_ENABLE_FORCE_EMAIL_VERIFY=${EBK_USER_ENABLE_FORCE_EMAIL_VERIFY}
+    volumes:
+      - /mnt/cache/container/appdata/ezbookkeeping/storage:/ezbookkeeping/storage
+      - /mnt/cache/container/appdata/ezbookkeeping/log:/ezbookkeeping/log
+    networks:
+      - container-share-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8080/ || exit 1"]
+      interval: 2m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+      start_interval: 5s
+
+networks:
+  container-share-net:
+    external: true
