@@ -1,0 +1,21 @@
+# Git hosting
+services:
+  server:
+    image: codeberg.org/forgejo/forgejo:16
+    container_name: forgejo
+    environment:
+      - USER_UID=1000
+      - USER_GID=100
+      - TZ=Europe/Rome
+    restart: unless-stopped
+    volumes:
+      - /mnt/cache/container/appdata/forgejo:/data
+    ports:
+      - '3000:3000'
+      - '222:22'
+    networks:
+      - container-share-net
+
+networks:
+  container-share-net:
+    external: true
