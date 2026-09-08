@@ -1,0 +1,27 @@
+# RSS Reader
+services:
+  freshrss:
+    image: lscr.io/linuxserver/freshrss:latest
+    container_name: freshrss
+    environment:
+      - PUID=99
+      - PGID=100
+      - TZ=Europe/Rome
+    volumes:
+      - /mnt/cache/container/appdata/freshrss/config:/config
+    ports:
+      - 8088:80
+    restart: unless-stopped
+    networks:
+      - container-share-net
+    healthcheck:
+          test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
+          interval: 2m
+          timeout: 10s
+          retries: 3
+          start_period: 30s
+          start_interval: 5s
+
+networks:
+  container-share-net:
+    external: true
