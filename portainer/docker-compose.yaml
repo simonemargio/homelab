@@ -1,0 +1,17 @@
+# Kubernetes and Docker management
+services:
+  portainer:
+    image: portainer/portainer-ee:lts
+    container_name: portainer
+    restart: always
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - 8000:8000
+      - 9000:9000
+      - 9443:9443
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /mnt/cache/container/appdata/portainer/data:/data:rw
+    environment:
+      TZ: Europe/Rome
