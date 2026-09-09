@@ -1,0 +1,56 @@
+# Password manager
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURITY=starttls
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - DOMAIN=${DOMAIN}
+      - ROCKET_TLS={certs="/ssl/cert.pem",key="/ssl/key.pem"}
+      - SIGNUPS_ALLOWED=${SIGNUPS_ALLOWED}
+      - INVITATIONS_ALLOWED=${INVITATIONS_ALLOWED}
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
+      - PUSH_ENABLED=${PUSH_ENABLED}
+      - PUSH_INSTALLATION_ID=${PUSH_INSTALLATION_ID}
+      - PUSH_INSTALLATION_KEY=${PUSH_INSTALLATION_KEY}
+      - PUSH_RELAY_URI=${PUSH_RELAY_URI}
+      - PUSH_IDENTITY_URI=${PUSH_IDENTITY_URI}
+      - IP_HEADER=${IP_HEADER}
+      - INVITATION_ORG_NAME=${INVITATION_ORG_NAME}
+      - TRASH_AUTO_DELETE_DAYS=${TRASH_AUTO_DELETE_DAYS}
+      - ENABLE_DB_WAL=${ENABLE_DB_WAL}
+      - SIGNUPS_VERIFY=${SIGNUPS_VERIFY}
+    volumes:
+      - /mnt/cache/container/appdata/vaultwarden/data:/data
+      - /mnt/cache/container/appdata/vaultwarden/ssl:/ssl:ro
+    networks:
+      - vaultwarden-tunnel-net
+
+  cloudflared:
+      image: cloudflare/cloudflared:latest
+      container_name: cloudflared-vaultwarden
+      restart: unless-stopped
+      command: tunnel --no-autoupdate run
+      environment:
+        - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+      networks:
+        - vaultwarden-tunnel-net
+      healthcheck:
+            test: ["CMD", "cloudflared", "tunnel", "ready"]
+            interval: 1m
+            timeout: 10s
+            retries: 3
+            start_period: 30s
+            start_interval: 5s
+
+networks:
+  vaultwarden-tunnel-net:
+    driver: bridge
