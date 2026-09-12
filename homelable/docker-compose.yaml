@@ -1,0 +1,46 @@
+# Infrastructure visualization
+services:
+  backend:
+    image: ghcr.io/pouzor/homelable-backend:latest
+    container_name: homelable-backend
+    restart: unless-stopped
+    environment:
+       SQLITE_PATH: /app/data/homelab.db
+       SECRET_KEY: ${SECRET_KEY}
+       CORS_ORIGINS: ${CORS_ORIGINS}
+       AUTH_MODE: ${AUTH_MODE}
+       AUTH_USERNAME: ${AUTH_USERNAME}
+       AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH}
+       SCANNER_RANGES: ${SCANNER_RANGES}
+       SCANNER_HTTP_RANGES: ${SCANNER_HTTP_RANGES}
+       SCANNER_HTTP_PROBE_ENABLED: ${SCANNER_HTTP_PROBE_ENABLED}
+       SCANNER_HTTP_VERIFY_TLS: ${SCANNER_HTTP_VERIFY_TLS}
+       STATUS_CHECKER_INTERVAL: ${STATUS_CHECKER_INTERVAL}
+       MCP_API_KEY: ${MCP_API_KEY}
+       MCP_SERVICE_KEY: ${MCP_SERVICE_KEY}
+       LIVEVIEW_KEY: ${LIVEVIEW_KEY}
+       HOMEPAGE_API_KEY: ${HOMEPAGE_API_KEY}
+    volumes:
+      - /mnt/cache/container/appdata/homelable:/app/data
+    networks:
+      - homelable
+      - container-share-net
+
+  frontend:
+    image: ghcr.io/pouzor/homelable-frontend:latest
+    container_name: homelable-frontend
+    restart: unless-stopped
+    ports:
+      - "3030:80"
+    depends_on:
+      - backend
+    networks:
+      - homelable
+      - container-share-net
+
+networks:
+  homelable:
+    driver: bridge
+
+  container-share-net:
+    external: true
