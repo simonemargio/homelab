@@ -1,0 +1,11 @@
+# Infrastructure diagram
+services:
+  ctroadmap:
+    image: ghcr.io/noobcity99/ctroadmap:beta
+    container_name: ctroadmap
+    restart: unless-stopped
+    ports:
+      - "8089:8088"
+    volumes:
+      - /mnt/cache/container/appdata/ctroadmap/data:/app/data
+      - /mnt/cache/container/appdata/ctroadmap/exports:/app/exports
