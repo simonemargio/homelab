@@ -1,7 +1,7 @@
 # Password manager
 services:
   vaultwarden:
-    image: vaultwarden/server:latest
+    image: vaultwarden/server:1.37.3
     container_name: vaultwarden
     restart: unless-stopped
     security_opt:
@@ -41,6 +41,7 @@ services:
       command: tunnel --no-autoupdate run
       environment:
         - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+        - TUNNEL_METRICS=0.0.0.0:60123
       networks:
         - vaultwarden-tunnel-net
       healthcheck:
