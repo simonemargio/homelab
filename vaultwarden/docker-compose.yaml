@@ -16,6 +16,8 @@ services:
       - DOMAIN=${DOMAIN}
       - ROCKET_TLS={certs="/ssl/cert.pem",key="/ssl/key.pem"}
       - SIGNUPS_ALLOWED=${SIGNUPS_ALLOWED}
+      - SIGNUPS_VERIFY=${SIGNUPS_VERIFY}
+      - SHOW_PASSWORD_HINT=${SHOW_PASSWORD_HINT}
       - INVITATIONS_ALLOWED=${INVITATIONS_ALLOWED}
       - ADMIN_TOKEN=${ADMIN_TOKEN}
       - PUSH_ENABLED=${PUSH_ENABLED}
@@ -27,7 +29,7 @@ services:
       - INVITATION_ORG_NAME=${INVITATION_ORG_NAME}
       - TRASH_AUTO_DELETE_DAYS=${TRASH_AUTO_DELETE_DAYS}
       - ENABLE_DB_WAL=${ENABLE_DB_WAL}
-      - SIGNUPS_VERIFY=${SIGNUPS_VERIFY}
+      
     volumes:
       - /mnt/cache/container/appdata/vaultwarden/data:/data
       - /mnt/cache/container/appdata/vaultwarden/ssl:/ssl:ro
