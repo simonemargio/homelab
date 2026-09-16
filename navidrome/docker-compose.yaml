@@ -1,7 +1,7 @@
 # Music streaming service
 services:
   navidrome:
-    image: deluan/navidrome:0.63.2
+    image: deluan/navidrome:0.64.0
     container_name: navidrome
     user: 1000:100
     ports:
