@@ -1,0 +1,11 @@
+# Docker management
+services:
+  dockhand:
+    image: fnsys/dockhand:latest
+    container_name: dockhand
+    restart: always
+    ports:
+      - 3005:3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /mnt/cache/container/appdata/dockhand/data:/app/data
