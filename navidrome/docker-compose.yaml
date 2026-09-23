@@ -1,33 +1,70 @@
-# Music streaming service
+# ==============================================================================
+# Navidrome Stack (Music Streaming Server)
+# ==============================================================================
+# A robust, lightweight, Subsonic-compatible server that indexes massive local 
+# music libraries and streams them with near-zero latency to dedicated clients 
+# across any device. It integrates with Koito to track listening history.
+# ==============================================================================
+
 services:
+  # ----------------------------------------------------------------------------
+  # Navidrome Application
+  # ----------------------------------------------------------------------------
   navidrome:
     image: deluan/navidrome:0.64.1
     container_name: navidrome
+    # Maps the internal container user to Unraid's default user and 
+    # group. This ensures Navidrome can read the music files without 
+    # encountering permissions errors or requiring root privileges.
     user: 1000:100
     ports:
+      # Maps the internal web UI and API port to the host.
+      # Access locally via http://<YOUR_IP>:4533
       - "4533:4533"
     restart: unless-stopped
     environment:
+      # --- Core Configuration ---
       - ND_CONFIGFILE=/data/navidrome.toml
+      # --- Automated Database Backups ---
+      # Navidrome creates automatic snapshots of its SQLite database (play counts, 
+      # playlists, users) without needing external scripts.
       - ND_BACKUP_PATH=/backup
-      - ND_BACKUP_SCHEDULE=0 0 * * *
-      - ND_BACKUP_COUNT=7
+      - ND_BACKUP_SCHEDULE=0 0 * * * # Runs daily at midnight
+      - ND_BACKUP_COUNT=7            # Retains the last 7 daily backups
+      # --- Scrobbling & Statistics ---
+      # Instead of sending listening data directly to Last.fm or ListenBrainz, 
+      # we route the scrobbles to our local Koito container. Koito processes 
+      # the statistics locally first, then relays them if configured to do so.
       - ND_LISTENBRAINZ_ENABLED=true
       - ND_LISTENBRAINZ_BASEURL=http://${KOITO_IP}:4110/apis/listenbrainz/1
     volumes:
+      # Persistent storage for the SQLite database, cache, and configuration.
+      # Mapped to the NVMe cache pool for maximum responsiveness during searches.
       - "/mnt/cache/container/appdata/navidrome/data:/data"
+      # The actual music library. 
+      # CRITICAL: Mounted as Read-Only (:ro). This guarantees that Navidrome 
+      # can index and stream the music, but absolutely cannot alter ID3 tags, 
+      # rename, or accidentally delete the original files.
       - "/mnt/cache/container/data/music:/music:ro"
+      # Destination directory for the automated daily database backups.
       - "/mnt/cache/container/appdata/navidrome/backup:/backup"
     networks:
+      # Required for Subsonic clients to connect externally via Cloudflare, 
+      # and for Navidrome to send scrobbles to the Koito container.
       - container-share-net
     healthcheck:
-          test: ["CMD", "wget", "-qO-", "http://localhost:4533/ping"]
-          interval: 10m
-          timeout: 10s
-          retries: 3
-          start_period: 1m
-          start_interval: 5s
+      # Pings the internal lightweight /ping endpoint to ensure the application 
+      # hasn't stalled or locked up.
+      test: ["CMD", "wget", "-qO-", "http://localhost:4533/ping"]
+      interval: 10m
+      timeout: 10s
+      retries: 3
+      start_period: 1m
+      start_interval: 5s
 
+# ------------------------------------------------------------------------------
+# Network Definitions
+# ------------------------------------------------------------------------------
 networks:
   container-share-net:
     external: true

@@ -1,24 +1,58 @@
-# Downloader
+# ==============================================================================
+# qBittorrent Stack
+# ==============================================================================
+# A containerized torrent client utilized for retrieving and seeding large 
+# datasets and distributions. This configuration uses the highly reliable image 
+# maintained by LinuxServer.io, optimized for home servers.
+# ==============================================================================
+
 services:
+  # ----------------------------------------------------------------------------
+  # qBittorrent Application
+  # ----------------------------------------------------------------------------
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
+    restart: unless-stopped
     deploy:
       resources:
         limits:
+          # CRITICAL: Torrent clients cache heavily in RAM to reduce disk I/O. 
+          # Without a hard limit, qBittorrent can consume all available host memory 
+          # during high-speed downloads of massive torrents, potentially crashing 
+          # the server. This caps it safely at 2GB.
           memory: 2G
     environment:
+      # PUID (99) and PGID (100) match Unraid's 'nobody' user and 'users' group. 
+      # This ensures downloaded files have the correct ownership and can be 
+      # modified/moved by the host or other containers (like media managers).
       - PUID=99
       - PGID=100
       - TZ=Etc/UTC
+      # Explicitly defines the internal ports for the application.
       - WEBUI_PORT=8080
       - TORRENTING_PORT=6881
     volumes:
+      # Persistent storage for qBittorrent's configuration, fastresume data, 
+      # and temporary state files.
       - /mnt/cache/container/appdata/qbittorrent/appdata:/config
+      # The destination folder for downloaded files.
+      # Notice this points to '/mnt/cache/...'. Downloading directly to the NVMe 
+      # cache pool prevents mechanical HDDs from constantly spinning and thrashing 
+      # during thousands of random small write operations (typical of BitTorrent).
       - /mnt/cache/media/Torrent:/downloads
     ports:
+      # Maps the web interface to the host.
+      # Access locally via http://<YOUR_IP>:8080
       - 8080:8080
+      # Maps the TCP and UDP ports required for peer-to-peer communication, 
+      # Distributed Hash Table (DHT), and peer discovery. 
+      # (Note: For optimal speeds, port 6881 should typically be forwarded 
+      # on your physical router).
       - 6881:6881
       - 6881:6881/udp
+    # Gives the container 10 seconds to gracefully close peer connections and 
+    # write its 'fastresume' data to disk before Docker kills the process. 
+    # This prevents the client from having to painstakingly "re-check" massive 
+    # files upon the next startup.
     stop_grace_period: "10s"
-    restart: unless-stopped

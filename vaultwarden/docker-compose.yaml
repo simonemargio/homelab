@@ -1,12 +1,34 @@
-# Password manager
+# ==============================================================================
+# Vaultwarden Stack (Password Manager)
+# ==============================================================================
+# A lightweight, Rust-based implementation of the Bitwarden API.
+# 
+# SECURITY ARCHITECTURE:
+# This stack employs a strict "defense in depth" approach. Instead of using the 
+# shared homelab network, Vaultwarden is placed in a completely isolated Docker 
+# network with its own dedicated Cloudflare Tunnel. This prevents lateral 
+# movement; if another web service is compromised, attackers cannot use the 
+# shared network to reach the password manager. 
+# Furthermore, communication between the tunnel and Vaultwarden is encrypted 
+# via an Origin CA certificate (Strict TLS).
+# ==============================================================================
+
 services:
+  # ----------------------------------------------------------------------------
+  # Vaultwarden Application
+  # ----------------------------------------------------------------------------
   vaultwarden:
+    # Pinned to a specific version for critical security/stability. 
+    # Password managers should never auto-update to 'latest' blindly.
     image: vaultwarden/server:1.37.3
     container_name: vaultwarden
     restart: unless-stopped
     security_opt:
+      # Prevents the container processes from gaining additional privileges, 
+      # mitigating potential privilege escalation exploits.
       - no-new-privileges:true
     environment:
+      # SMTP settings for 2FA emails, verifications, and invitations.
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
       - SMTP_SECURITY=starttls
@@ -14,46 +36,64 @@ services:
       - SMTP_USERNAME=${SMTP_USERNAME}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - DOMAIN=${DOMAIN}
+      # Enforces HTTPS internally. Requires a Cloudflare Origin CA cert and key 
+      # to be mounted in the /ssl volume.
       - ROCKET_TLS={certs="/ssl/cert.pem",key="/ssl/key.pem"}
+      # Account registration and invitation controls
       - SIGNUPS_ALLOWED=${SIGNUPS_ALLOWED}
       - SIGNUPS_VERIFY=${SIGNUPS_VERIFY}
       - SHOW_PASSWORD_HINT=${SHOW_PASSWORD_HINT}
       - PASSWORD_HINTS_ALLOWED=${PASSWORD_HINTS_ALLOWED}
       - INVITATIONS_ALLOWED=${INVITATIONS_ALLOWED}
+      - INVITATION_ORG_NAME=${INVITATION_ORG_NAME}
       - ADMIN_TOKEN=${ADMIN_TOKEN}
+      # Native push notifications to mobile clients (live sync)
       - PUSH_ENABLED=${PUSH_ENABLED}
       - PUSH_INSTALLATION_ID=${PUSH_INSTALLATION_ID}
       - PUSH_INSTALLATION_KEY=${PUSH_INSTALLATION_KEY}
       - PUSH_RELAY_URI=${PUSH_RELAY_URI}
       - PUSH_IDENTITY_URI=${PUSH_IDENTITY_URI}
+      # Ensures Vaultwarden logs the real client IP (passed by Cloudflare) 
+      # instead of the Tunnel's internal IP.
       - IP_HEADER=${IP_HEADER}
-      - INVITATION_ORG_NAME=${INVITATION_ORG_NAME}
       - TRASH_AUTO_DELETE_DAYS=${TRASH_AUTO_DELETE_DAYS}
       - ENABLE_DB_WAL=${ENABLE_DB_WAL}
     volumes:
+      # Persistent storage for the SQLite DB, attachments, and RSA keys.
+      # Mapped to the NVMe cache for rapid encryption/decryption operations.
       - /mnt/cache/container/appdata/vaultwarden/data:/data
+      # The Cloudflare Origin CA certificate and key (Strict End-to-End Encryption).
+      # Mounted Read-Only to prevent tampering.
       - /mnt/cache/container/appdata/vaultwarden/ssl:/ssl:ro
     networks:
       - vaultwarden-tunnel-net
 
+  # ----------------------------------------------------------------------------
+  # Dedicated Cloudflared Tunnel
+  # ----------------------------------------------------------------------------
   cloudflared:
-      image: cloudflare/cloudflared:latest
-      container_name: cloudflared-vaultwarden
-      restart: unless-stopped
-      command: tunnel --no-autoupdate run
-      environment:
-        - TUNNEL_TOKEN=${TUNNEL_TOKEN}
-        - TUNNEL_METRICS=0.0.0.0:60123
-      networks:
-        - vaultwarden-tunnel-net
-      healthcheck:
-            test: ["CMD", "cloudflared", "tunnel", "ready"]
-            interval: 1m
-            timeout: 10s
-            retries: 3
-            start_period: 30s
-            start_interval: 5s
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared-vaultwarden
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+      - TUNNEL_METRICS=0.0.0.0:60123
+    networks:
+      - vaultwarden-tunnel-net
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "ready"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+      start_interval: 5s
 
+# ------------------------------------------------------------------------------
+# Network Definitions
+# ------------------------------------------------------------------------------
 networks:
   vaultwarden-tunnel-net:
+    # Notice this is NOT "external: true". This creates a private, isolated 
+    # bridge network specifically and exclusively for Vaultwarden and its tunnel.
     driver: bridge
