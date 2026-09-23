@@ -1,11 +1,31 @@
-# Docker management
+# ==============================================================================
+# Dockhand
+# ==============================================================================
+# Dockhand acts as the central orchestrator for the homelab. It bridges the
+# gap between the Git repository and the live Docker daemon, allowing for 
+# streamlined deployments, updates, and management of all other container 
+# stacks on the server.
+# ==============================================================================
+
 services:
+  # ----------------------------------------------------------------------------
+  # Dockhand Application
+  # ----------------------------------------------------------------------------
   dockhand:
     image: fnsys/dockhand:latest
     container_name: dockhand
+    # "always" is used here because as the primary management tool, it is 
+    # critical that this container is running whenever the Docker daemon starts.
     restart: always
     ports:
+      # Maps the internal web UI (port 3000) to the host on port 3005.
+      # Access the dashboard via http://<YOUR_IP>:3005
       - 3005:3000
     volumes:
+      # Mounts the host's Docker socket. This is strictly required for Dockhand 
+      # to function, as it needs full privileges to spin up, tear down, update, 
+      # and inspect other containers across the infrastructure.
       - /var/run/docker.sock:/var/run/docker.sock
+      # Unraid specific path for persistent app data (stack configurations, 
+      # local settings, etc.). Mapped to the NVMe cache pool for optimal performance.
       - /mnt/cache/container/appdata/dockhand/data:/app/data
