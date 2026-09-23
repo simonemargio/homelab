@@ -1,27 +1,46 @@
-# Personal finance app
+# ==============================================================================
+# ezBookkeeping Stack (Personal Finance)
+# ==============================================================================
+# A lightweight, private, and secure personal finance and accounting application.
+# This configuration uses SQLite for extreme simplicity and low overhead, 
+# perfectly suited for single-user or small household environments. Data stays
+# local, severing reliance on external cloud-based analytics engines.
+# ==============================================================================
+
 services:
+  # ----------------------------------------------------------------------------
+  # ezBookkeeping Application
+  # ----------------------------------------------------------------------------
   ezbookkeeping:
     image: mayswind/ezbookkeeping:latest
     container_name: ezbookkeeping
     hostname: ezbookkeeping
     restart: unless-stopped
     ports:
+      # Maps the internal container port (8080) to the host (8085).
+      # Access locally via http://<YOUR_IP>:8085
       - "8085:8080"
     environment:
+      # Localization
       - TZ=Europe/Rome
+      # Customizes the global name.
       - EBK_GLOBAL_APP_NAME=Wallet
+      # Defines where logs are written (both standard output and physical file).
       - EBK_LOG_MODE=console file
+      # Core application settings pulled dynamically from the .env file
       - EBK_LOG_LEVEL=${EBK_LOG_LEVEL}
       - EBK_SECURITY_SECRET_KEY=${EBK_SECURITY_SECRET_KEY}
       - EBK_USER_ENABLE_REGISTER=${EBK_USER_ENABLE_REGISTER}
       - EBK_SERVER_DOMAIN=${EBK_SERVER_DOMAIN}
       - EBK_SERVER_ROOT_URL=${EBK_SERVER_ROOT_URL}
       - EBK_AUTH_ENABLE_FORGET_PASSWORD=${EBK_AUTH_ENABLE_FORGET_PASSWORD}
+      # Database setup
       - EBK_DATABASE_TYPE=${EBK_DATABASE_TYPE}
       - EBK_DATABASE_DB_PATH=${EBK_DATABASE_DB_PATH}
+      # UI Options
       - EBK_USER_AVATAR_PROVIDER=${EBK_USER_AVATAR_PROVIDER}
       - EBK_SERVER_ENABLE_GZIP=${EBK_SERVER_ENABLE_GZIP}
-      # Email configuration
+      # Email/SMTP settings for password resets and verifications
       - EBK_MAIL_ENABLE_SMTP=${EBK_MAIL_ENABLE_SMTP}
       - EBK_MAIL_SMTP_HOST=${EBK_MAIL_SMTP_HOST}
       - EBK_MAIL_SMTP_USER=${EBK_MAIL_SMTP_USER}
@@ -31,11 +50,16 @@ services:
       - EBK_USER_ENABLE_EMAIL_VERIFY=${EBK_USER_ENABLE_EMAIL_VERIFY}
       - EBK_USER_ENABLE_FORCE_EMAIL_VERIFY=${EBK_USER_ENABLE_FORCE_EMAIL_VERIFY}
     volumes:
+      # Persistent storage for the SQLite database and user uploads.
+      # Mapped to the NVMe cache pool for maximum transactional responsiveness.
       - /mnt/cache/container/appdata/ezbookkeeping/storage:/ezbookkeeping/storage
+      # Persistent storage for application log files.
       - /mnt/cache/container/appdata/ezbookkeeping/log:/ezbookkeeping/log
     networks:
       - container-share-net
     healthcheck:
+      # Pings the internal web server to ensure the application is successfully 
+      # running and responding to web requests.
       test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8080/ || exit 1"]
       interval: 2m
       timeout: 10s
@@ -43,6 +67,9 @@ services:
       start_period: 30s
       start_interval: 5s
 
+# ------------------------------------------------------------------------------
+# Network Definitions
+# ------------------------------------------------------------------------------
 networks:
   container-share-net:
     external: true
