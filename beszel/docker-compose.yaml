@@ -1,37 +1,64 @@
-# Service monitor
+# ==============================================================================
+# Beszel Monitoring Stack
+# ==============================================================================
+# This stack deploys Beszel (a lightweight telemetry hub), a secure Docker 
+# socket proxy, and the Beszel agent. The architecture ensures that the agent 
+# can monitor Docker containers without having direct root access to the 
+# host's docker.sock, adhering to the principle of least privilege.
+# ==============================================================================
+
 services:
+  # ----------------------------------------------------------------------------
+  # Beszel Hub (Dashboard & Control Plane)
+  # ----------------------------------------------------------------------------
   beszel:
     image: henrygd/beszel:latest
     container_name: beszel
     restart: unless-stopped
     environment:
+      # The base URL where the dashboard is accessible.
       APP_URL: http://127.0.0.1:8090
+      # Disabled for security/performance, as container details will be 
+      # fetched safely via the agent and the docker-proxy.
       CONTAINER_DETAILS: false
     ports:
       - 8090:8090
     volumes:
+      # Unraid specific path for persistent app data (SQLite DB, settings).
+      # Mapped to the NVMe cache pool for high IOPS performance.
       - /mnt/cache/container/appdata/beszel/data:/beszel_data
     networks:
       - container-share-net
     healthcheck:
-          test: ["CMD", "/beszel", "health", "--url", "http://localhost:8090"]
-          interval: 2m
-          timeout: 10s
-          retries: 3
-          start_period: 30s
-          start_interval: 5s
+      # Verifies the hub is responsive before marking the container as healthy.
+      test: ["CMD", "/beszel", "health", "--url", "http://localhost:8090"]
+      interval: 2m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+      start_interval: 5s
 
-  # Security proxy that filters Docker APIs
+  # ----------------------------------------------------------------------------
+  # Docker Socket Proxy
+  # ----------------------------------------------------------------------------
+  # Acts as an internal firewall for the Docker API. It intercepts requests from
+  # the agent and strictly allows read-only access to specific endpoints, 
+  # completely blocking access to critical environment variables or write commands.
   docker-proxy:
     image: tecnativa/docker-socket-proxy:latest
     container_name: docker-proxy
     restart: unless-stopped
     environment:
-      - CONTAINERS=1 # Allow reading of containers
-      - INFO=1       # Allow reading of Docker basic info
+      # Feature flags: 1 = Allow, 0 = Deny (default)
+      - CONTAINERS=1 # Allow reading container status/stats
+      - INFO=1       # Allow reading basic Docker engine info
     volumes:
+      # Mounts the actual Docker socket as read-only to prevent tampering.
       - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
+      # Binds exclusively to the host's loopback address (127.0.0.1).
+      # This ensures the proxy is NOT reachable from the external network,
+      # but remains accessible to the agent running in host network mode.
       - "127.0.0.1:23750:2375"
     networks:
       - container-share-net
@@ -43,22 +70,33 @@ services:
       start_period: 30s
       start_interval: 5s
 
-  # Agent
+  # ----------------------------------------------------------------------------
+  # Beszel Agent
+  # ----------------------------------------------------------------------------
   beszel-agent:
     image: henrygd/beszel-agent:latest
     container_name: beszel-agent
     restart: unless-stopped
+    # Host network mode is required for the agent to read accurate host metrics
+    # (Network I/O, general CPU/RAM usage of the Unraid server).
     network_mode: host 
+    # Privileged mode is required to access hardware sensors and kernel data.
     privileged: true
     depends_on:
+      # Ensures the agent doesn't start until the proxy is actively filtering.
       - docker-proxy
     volumes:
+      # Persistent storage for agent configuration.
       - /mnt/cache/container/appdata/beszel/agent:/var/lib/beszel-agent
     environment:
+      # Authentication credentials pulled from the .env file.
       TOKEN: ${TOKEN}
       KEY: ${KEY}
       PORT: 45876
       HUB_URL: http://127.0.0.1:8090
+      # Connects to Docker via the secure proxy rather than the local socket.
+      # Because network_mode is 'host', 127.0.0.1 resolves to the Unraid host,
+      # hitting the proxy port we exposed above.
       DOCKER_HOST: tcp://127.0.0.1:23750
     healthcheck:
       test: ["CMD", "/agent", "health"]
@@ -68,6 +106,9 @@ services:
       start_period: 30s
       start_interval: 5s
 
+# ------------------------------------------------------------------------------
+# Network Definitions
+# ------------------------------------------------------------------------------
 networks:
   container-share-net:
     external: true
