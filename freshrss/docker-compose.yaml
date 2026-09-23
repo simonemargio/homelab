@@ -1,27 +1,55 @@
-# RSS Reader
+# ==============================================================================
+# FreshRSS Stack
+# ==============================================================================
+# In an era dominated by predictive algorithms, FreshRSS provides chronological 
+# aggregation of news, blogs, and releases. It allows for organized, targeted 
+# information consumption entirely under the user's control, free from the 
+# distractions of conventional social networks.
+# ==============================================================================
+
 services:
+  # ----------------------------------------------------------------------------
+  # FreshRSS Application
+  # ----------------------------------------------------------------------------
   freshrss:
+    # Utilizing the highly reliable image maintained by the LinuxServer.io team.
     image: lscr.io/linuxserver/freshrss:latest
     container_name: freshrss
+    restart: unless-stopped
     environment:
+      # PUID (99) and PGID (100) correspond to Unraid's 'nobody' user and 
+      # 'users' group. This ensures the container has the correct read/write 
+      # permissions for the host file system without running as root.
       - PUID=99
       - PGID=100
+      # Localization for accurate feed timestamps and cron based fetch intervals.
       - TZ=Europe/Rome
     volumes:
+      # Persistent storage for the SQLite database, configurations, and feed data.
+      # Placed on the NVMe cache pool to ensure fast read/write operations when 
+      # refreshing hundreds of feeds simultaneously.
       - /mnt/cache/container/appdata/freshrss/config:/config
     ports:
+      # Maps the internal web server port (80) to the host (8088).
+      # Access locally via http://<YOUR_IP>:8088
       - 8088:80
-    restart: unless-stopped
     networks:
+      # Connects to the shared network, allowing the Cloudflare tunnel to 
+      # securely route external traffic to this container for remote reading, 
+      # or syncing with smartphone client apps.
       - container-share-net
     healthcheck:
-          test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
-          interval: 2m
-          timeout: 10s
-          retries: 3
-          start_period: 30s
-          start_interval: 5s
+      # Verifies the internal web server is responding successfully.
+      test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
+      interval: 2m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+      start_interval: 5s
 
+# ------------------------------------------------------------------------------
+# Network Definitions
+# ------------------------------------------------------------------------------
 networks:
   container-share-net:
     external: true
