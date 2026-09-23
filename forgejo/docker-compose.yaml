@@ -1,21 +1,47 @@
-# Git hosting
+# ==============================================================================
+# Forgejo
+# ==============================================================================
+# Forgejo is a lightweight, community-driven fork of Gitea.
+# ==============================================================================
+
 services:
+  # ----------------------------------------------------------------------------
+  # Forgejo Application Server
+  # ----------------------------------------------------------------------------
   server:
+    # Using the official Codeberg registry image pinned to major version 16.
     image: codeberg.org/forgejo/forgejo:16
     container_name: forgejo
+    restart: unless-stopped
     environment:
+      # Maps the internal container user to a specific host user/group. 
+      # This is crucial for avoiding permission issues when editing files 
+      # directly from the Unraid host.
       - USER_UID=1000
       - USER_GID=100
+      # Localization for accurate commit timestamps and cron jobs.
       - TZ=Europe/Rome
-    restart: unless-stopped
     volumes:
+      # Persistent storage for Git repositories, SQLite database, and user uploads.
+      # Placed on the NVMe cache pool because Git operations (indexing, branching, 
+      # committing) generate heavy random read/write I/O operations.
       - /mnt/cache/container/appdata/forgejo:/data
     ports:
+      # Maps the web interface port.
+      # Access locally via http://<YOUR_IP>:3000
       - '3000:3000'
+      # Maps the SSH port used for Git operations (e.g., git clone, git push).
+      # The host port is set to 222 to avoid conflicting with Unraid's 
+      # native SSH daemon running on port 22.
       - '222:22'
     networks:
+      # Connects to the shared network, allowing the Cloudflare tunnel to 
+      # route traffic to Forgejo if external web access is desired.
       - container-share-net
 
+# ------------------------------------------------------------------------------
+# Network Definitions
+# ------------------------------------------------------------------------------
 networks:
   container-share-net:
     external: true
