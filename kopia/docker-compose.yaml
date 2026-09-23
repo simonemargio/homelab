@@ -1,16 +1,40 @@
-# Offsite backup
+# ==============================================================================
+# Kopia Stack (Offsite Backup & Disaster Recovery)
+# ==============================================================================
+# The beating heart of the offsite backup strategy. Kopia creates encrypted, 
+# deduplicated, zero-knowledge snapshots and ships them to a remote Hetzner 
+# Storage Box. It utilizes pre/post execution hooks to pause active containers 
+# during backups, ensuring absolute transactional consistency for databases.
+# ==============================================================================
+
 services:
+  # ----------------------------------------------------------------------------
+  # Kopia Application
+  # ----------------------------------------------------------------------------
   kopia:
     image: "kopia/kopia:latest"
     container_name: "kopia"
-    hostname: "${HOSTNAME}" # Prevent Kopia from losing history by recreating the container
+    # Kopia ties snapshot history to the machine's hostname. 
+    # By default, Docker assigns a random container ID as the hostname upon 
+    # recreation, which would cause Kopia to treat it as a new machine and 
+    # restart full backups instead of incremental ones. Setting a static 
+    # hostname prevents this history loss.
+    hostname: "${HOSTNAME}" 
     restart: unless-stopped
     ports:
+      # Maps the internal Kopia Web GUI to the host.
+      # Access locally via http://<YOUR_IP>:8087
       - "8087:8087"
     environment:
+      # Golang Memory Optimizations. Kopia is extremely fast but can be memory 
+      # hungry during large deduplication processes. These flags force the Go 
+      # garbage collector to aggressively release unused memory back to the OS,
+      # preventing Kopia from exhausting the server's RAM.
       - GODEBUG=madvdontneed=1
       - GOMEMLIMIT=700MiB
+      # Time and zone
       - TZ=Europe/Rome
+      # Core credentials pulled from the .env file
       - USER="${USER}"
       - KOPIA_PASSWORD=${KOPIA_PASSWORD}
       - KOPIA_SERVER_USERNAME=${KOPIA_SERVER_USERNAME}
@@ -18,24 +42,40 @@ services:
     command:
       - server
       - start
+      # Disables internal security checks since this service is only exposed locally
       - --disable-csrf-token-checks
       - --insecure
       - --address=0.0.0.0:8087
+      # Allows Kopia to execute the custom pre-hook and post-hook 
+      # scripts (e.g., to stop/start containers) before taking a snapshot.
       - --enable-actions
     volumes:
-      # Configuration
+      # --- Kopia Configuration & Operational Data ---
+      # Mapped to the NVMe cache pool for maximum speed during index lookups.
       - /mnt/cache/container/appdata/kopia/config:/app/config:rw
       - /mnt/cache/container/appdata/kopia/cache:/app/cache:rw
       - /mnt/cache/container/appdata/kopia/logs:/app/logs:rw
       - /mnt/cache/container/appdata/kopia/restore:/restore/:rw
-      # Script e Socket
+      
+      # --- Automation Scripts & Docker Socket ---
+      # Mounts the custom scripts used to freeze containers.
       - /mnt/cache/container/appdata/kopia/script:/script:ro
+      # Grants Kopia read/write access to the Docker daemon. This is required 
+      # so the pre/post hook scripts can issue 'docker stop' and 'docker start' 
+      # commands to guarantee database consistency during backups.
       - /var/run/docker.sock:/var/run/docker.sock:rw
-      # Backup
+      
+      # --- Source Data to Backup ---
+      # The actual data directories Kopia will snapshot. 
+      # Mounted as Read-Only (:ro) to absolutely guarantee that the backup 
+      # software cannot accidentally modify or corrupt the source data.
       - /mnt/hdd/simone:/backup/simone:ro
       - /mnt/hdd/alfredo:/backup/alfredo:ro
       - /mnt/cache/container:/backup/container:ro
     healthcheck:
+      # Checks if the server is responding. A 401 (Unauthorized) response is 
+      # actually considered healthy here, as it means the web server is running 
+      # and correctly enforcing authentication.
       test: ["CMD-SHELL", "code=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8087/); [ \"$$code\" = \"200\" ] || [ \"$$code\" = \"401\" ]"]
       interval: 2m
       timeout: 10s
