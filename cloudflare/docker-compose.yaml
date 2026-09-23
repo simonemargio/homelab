@@ -1,23 +1,51 @@
-# Tunnel VPN
+# ==============================================================================
+# Cloudflare Tunnel
+# ==============================================================================
+# This stack deploys the cloudflared daemon. It establishes a secure, outbound, 
+# encrypted connection to Cloudflare's edge network, acting as an ingress 
+# controller for the homelab.
+# ==============================================================================
+
 services:
+  # ----------------------------------------------------------------------------
+  # Cloudflared Daemon
+  # ----------------------------------------------------------------------------
   cloudflare-tunnel:
     image: cloudflare/cloudflared:latest
     container_name: cloudflare-tunnel
+    # The --no-autoupdate flag is considered best practice in a containerized 
+    # environment. Container binaries should not update themselves; instead, 
+    # the entire Docker image should be updated via your deployment manager 
+    # (e.g., pulling the new 'latest' tag and recreating the container).
     command: tunnel --no-autoupdate run
     environment:
+      # The unique token that authenticates this specific tunnel to your 
+      # Cloudflare Zero Trust account. Pulled from the .env file.
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+      # Exposes Prometheus-compatible metrics on port 60123 internally.
       - TUNNEL_METRICS=0.0.0.0:60123
     restart: unless-stopped
     networks:
+      # By attaching the tunnel to the shared Docker network, it can directly
+      # resolve and route traffic to other containers (like Kavita, Navidrome)
+      # using their container names as hostnames, without needing to expose 
+      # their ports to the physical host network.
       - container-share-net
     healthcheck:
-          test: ["CMD", "cloudflared", "tunnel", "ready"]
-          interval: 1m
-          timeout: 10s
-          retries: 3
-          start_period: 30s
-          start_interval: 5s
+      # Built-in cloudflared command that verifies the tunnel has successfully 
+      # established connections to the Cloudflare edge nodes.
+      test: ["CMD", "cloudflared", "tunnel", "ready"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+      start_interval: 5s
 
+# ------------------------------------------------------------------------------
+# Network Definitions
+# ------------------------------------------------------------------------------
 networks:
   container-share-net:
+    # Indicates this network is created externally and shared across different 
+    # stacks. The tunnel uses this to communicate laterally with web services.
     external: true
