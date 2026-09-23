@@ -1,29 +1,58 @@
-# Navidrome Wrapped
+# ==============================================================================
+# Koito Stack (Music Statistics & Scrobbler)
+# ==============================================================================
+# A fast, themeable server to explore listening patterns, track favorite artists,
+# and relay scrobbles. Working alongside Navidrome, it tracks listening history 
+# entirely server-side.
+# ==============================================================================
+
 services:
+  # ----------------------------------------------------------------------------
+  # Koito Application
+  # ----------------------------------------------------------------------------
   koito:
     image: gabehf/koito:latest
     container_name: koito
     deploy:
       resources:
         limits:
+          # Hard limit on memory usage (812 Megabytes) to ensure it doesn't 
+          # impact core NAS services or the Navidrome server itself during 
+          # heavy database queries or library syncing.
           memory: 812M
     ports:
+      # Maps the internal web UI (4110) to the host.
+      # Access locally via http://<YOUR_IP>:4110
       - "4110:4110"
     volumes:
+      # Persistent storage for Koito's configuration and local statistics database.
+      # Mapped to the NVMe cache for fast UI loading and responsive chart rendering.
       - "/mnt/cache/container/appdata/koito:/etc/koito"
     restart: unless-stopped
     environment:
-      - KOITO_DEFAULT_THEME=black
+      # Sets the default UI theme.
+      - KOITO_DEFAULT_THEME=midnight
+      # Uses Docker's internal DNS to reach Navidrome directly via 
+      # the shared network (using the container name 'navidrome'), avoiding 
+      # any external round-trips or need for public URLs.
       - KOITO_SUBSONIC_URL=http://navidrome:4533
+      # Enables forwarding of scrobbles to ListenBrainz (an open-source 
+      # alternative to Last.fm), keeping in line with the digital sovereignty ethos.
       - KOITO_ENABLE_LBZ_RELAY=true
       - KOITO_LBZ_RELAY_URL=https://api.listenbrainz.org/1
+      # Sensitive credentials and tokens passed securely from the .env file.
       - KOITO_DEFAULT_USERNAME=${KOITO_DEFAULT_USERNAME}
       - KOITO_DEFAULT_PASSWORD=${KOITO_DEFAULT_PASSWORD}
       - KOITO_SUBSONIC_PARAMS=${KOITO_SUBSONIC_PARAMS}
       - KOITO_LBZ_RELAY_TOKEN=${KOITO_LBZ_RELAY_TOKEN}
     networks:
+      # Required for Koito to communicate securely with the Navidrome container 
+      # and the Cloudflare Tunnel for external dashboard access.
       - container-share-net
 
+# ------------------------------------------------------------------------------
+# Network Definitions
+# ------------------------------------------------------------------------------
 networks:
   container-share-net:
     external: true
