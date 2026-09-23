@@ -1,46 +1,74 @@
-# Infrastructure visualization
+# ==============================================================================
+# Homelable Stack
+# ==============================================================================
+# It provides a live dashboard to visualize the real-time topology and health 
+# status of the services running on the server.
+# ==============================================================================
+
 services:
+  # ----------------------------------------------------------------------------
+  # Homelable Backend (API & Scanner)
+  # ----------------------------------------------------------------------------
   backend:
     image: ghcr.io/pouzor/homelable-backend:latest
     container_name: homelable-backend
     restart: unless-stopped
     environment:
-       SQLITE_PATH: /app/data/homelab.db
-       SECRET_KEY: ${SECRET_KEY}
-       CORS_ORIGINS: ${CORS_ORIGINS}
-       AUTH_MODE: ${AUTH_MODE}
-       AUTH_USERNAME: ${AUTH_USERNAME}
-       AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH}
-       SCANNER_RANGES: ${SCANNER_RANGES}
-       SCANNER_HTTP_RANGES: ${SCANNER_HTTP_RANGES}
-       SCANNER_HTTP_PROBE_ENABLED: ${SCANNER_HTTP_PROBE_ENABLED}
-       SCANNER_HTTP_VERIFY_TLS: ${SCANNER_HTTP_VERIFY_TLS}
-       STATUS_CHECKER_INTERVAL: ${STATUS_CHECKER_INTERVAL}
-       MCP_API_KEY: ${MCP_API_KEY}
-       MCP_SERVICE_KEY: ${MCP_SERVICE_KEY}
-       LIVEVIEW_KEY: ${LIVEVIEW_KEY}
-       HOMEPAGE_API_KEY: ${HOMEPAGE_API_KEY}
+      # Internal path for the SQLite database where topology data is stored.
+      SQLITE_PATH: /app/data/homelab.db
+      # Core security and authentication variables pulled from .env
+      SECRET_KEY: ${SECRET_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      AUTH_MODE: ${AUTH_MODE}
+      AUTH_USERNAME: ${AUTH_USERNAME}
+      AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH}
+      # Network scanning and health check configurations
+      SCANNER_RANGES: ${SCANNER_RANGES}
+      SCANNER_HTTP_RANGES: ${SCANNER_HTTP_RANGES}
+      SCANNER_HTTP_PROBE_ENABLED: ${SCANNER_HTTP_PROBE_ENABLED}
+      SCANNER_HTTP_VERIFY_TLS: ${SCANNER_HTTP_VERIFY_TLS}
+      STATUS_CHECKER_INTERVAL: ${STATUS_CHECKER_INTERVAL}
+      # External integrations and API keys
+      MCP_API_KEY: ${MCP_API_KEY}
+      MCP_SERVICE_KEY: ${MCP_SERVICE_KEY}
+      LIVEVIEW_KEY: ${LIVEVIEW_KEY}
+      HOMEPAGE_API_KEY: ${HOMEPAGE_API_KEY}
     volumes:
+      # Persistent storage for the SQLite database. Mapped to the NVMe cache.
       - /mnt/cache/container/appdata/homelable:/app/data
     networks:
+      # Dedicated network for frontend-backend communication
       - homelable
+      # Shared network allowing the backend to scan and probe other containers
       - container-share-net
 
+  # ----------------------------------------------------------------------------
+  # Homelable Frontend (Web UI)
+  # ----------------------------------------------------------------------------
   frontend:
     image: ghcr.io/pouzor/homelable-frontend:latest
     container_name: homelable-frontend
     restart: unless-stopped
     ports:
+      # Maps the internal web UI (port 80) to the host on port 3030.
+      # Access the dashboard via http://<YOUR_IP>:3030
       - "3030:80"
     depends_on:
+      # Ensures the backend API is up before starting the frontend
       - backend
     networks:
       - homelable
       - container-share-net
 
+# ------------------------------------------------------------------------------
+# Network Definitions
+# ------------------------------------------------------------------------------
 networks:
   homelable:
+    # An isolated bridge network used strictly for communication between 
+    # the frontend and backend containers.
     driver: bridge
 
   container-share-net:
+    # External network for reaching other homelab services and Cloudflare.
     external: true
