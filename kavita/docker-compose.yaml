@@ -1,20 +1,48 @@
-# Digital library
+# ==============================================================================
+# Kavita Stack (Digital Library & Reading Server)
+# ==============================================================================
+# A highly optimized digital archival platform for ebooks, comics, and manga. 
+# Features a sophisticated metadata engine and seamless cross-device 
+# synchronization for web-based reading.
+# ==============================================================================
+
 services:
+  # ----------------------------------------------------------------------------
+  # Kavita Application
+  # ----------------------------------------------------------------------------
   kavita:
     image: jvmilazz0/kavita:latest
     container_name: kavita
+    restart: unless-stopped
+    # Restricts the container to a maximum of 2GB of RAM.
+    # This is a crucial safeguard, during massive initial library scans or 
+    # heavy metadata extraction (especially for large CBZ/CBR comic files), 
+    # memory usage can spike. This prevents Kavita from starving the host OS.
     mem_limit: 2g
     environment:
+      # Localization for accurate reading logs and sync timestamps.
       - TZ=Europe/Rome
     volumes:
+      # Persistent storage for Kavita's SQLite database, cache, and configuration.
+      # Mapped to the NVMe cache pool to ensure ultra-fast metadata loading and 
+      # smooth UI navigation.
       - /mnt/cache/container/appdata/kavita:/kavita/config
+      # The actual media library (ebooks, comics, manga) stored on the HDD array.
+      # Mapped as Read-Only (:ro) to ensure that Kavita can never accidentally 
+      # modify, corrupt, or delete the original archival files.
       - /mnt/hdd/simone/Backup/Read:/read:ro
     ports:
+      # Maps the internal web server port (5000) to the host (5000).
+      # Access locally via http://<YOUR_IP>:5000
       - "5000:5000"
-    restart: unless-stopped
     networks:
+      # Connects to the shared network, allowing the Cloudflare tunnel to 
+      # route traffic for remote reading from tablets, e-readers, or smartphones.
       - container-share-net
 
+# ------------------------------------------------------------------------------
+# Network Definitions
+# ------------------------------------------------------------------------------
 networks:
   container-share-net:
     external: true
