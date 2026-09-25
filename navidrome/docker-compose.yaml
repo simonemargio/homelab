@@ -45,7 +45,7 @@ services:
       # CRITICAL: Mounted as Read-Only (:ro). This guarantees that Navidrome 
       # can index and stream the music, but absolutely cannot alter ID3 tags, 
       # rename, or accidentally delete the original files.
-      - "/mnt/cache/container/data/music:/music:ro"
+      - "/mnt/hdd/simone/Backup/Music/navidrome:/music:ro"
       # Destination directory for the automated daily database backups.
       - "/mnt/cache/container/appdata/navidrome/backup:/backup"
     networks:
