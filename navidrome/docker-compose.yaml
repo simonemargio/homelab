@@ -11,7 +11,7 @@ services:
   # Navidrome Application
   # ----------------------------------------------------------------------------
   navidrome:
-    image: deluan/navidrome:0.64.1
+    image: deluan/navidrome:0.64.2
     container_name: navidrome
     # Maps the internal container user to Unraid's default user and 
     # group. This ensures Navidrome can read the music files without 
