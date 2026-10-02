@@ -35,6 +35,7 @@ The current infrastructure runs a diverse stack of applications, categorized by 
 *   **Homelable:** Custom homelab utility and labeling framework tailored for this specific environment.
 *   **Beszel:** telemetry engine. A highly efficient monitoring daemon that aggregates real time metrics on CPU, memory, and container health, maintaining historical performance data without consuming excessive system resources.
 *   **Cloudflare Tunnel:** edge gateway. Securely exposes internal services to the public internet via outbound connections, establishing a zero-trust architecture. This completely bypasses the need for port forwarding, protecting the internal network from external scanning.
+*   **Uptime Kuma:** a comprehensive monitoring stack. Uptime Kuma actively tracks the health and response times of all individual homelab services, while Healthchecks acts as a critical "dead man's switch," notifying me immediately if the entire server goes offline.
 
 ### Security & Data Integrity
 *   **Forgejo:** git instance that serves as the definitive repository for my personal codebase, scripts, and documentation. Keeping these assets locally provides a trusted source of truth for the system, enables versioned and auditable changes, and avoids exposing sensitive operational details to third-party cloud services.
@@ -42,6 +43,7 @@ The current infrastructure runs a diverse stack of applications, categorized by 
 *   **Vaultwarden:** lightweight, Rust-based implementation of the Bitwarden API that securely manages credentials and sensitive strings locally, entirely severing reliance on cloud-based password managers.
 
 ### Media
+*   **Lidarr:** automated music collection manager and my entry into the *arr ecosystem. It excels at keeping the local library meticulously organized, identifying missing albums, and monitoring upcoming releases via calendar integration. While I strongly advocate for [acquiring high-quality music](https://simonemargio.dev/log/navidrome/#music) in ways that support artists, Lidarr serves as a pragmatic tool primarily dedicated to sourcing and archiving albums that are out of print, no longer commercially available, or prohibitively expensive.
 *   **Kavita:** digital archival platform. It acts as a highly optimized reading server for ebooks, comics, and manga, featuring a sophisticated metadata engine and seamless cross device synchronization.
 *   **Koito:** modern scrobbler. A fast, themeable server to explore listening patterns, track favorite artists, and relay scrobbles to other platforms keeping listening data entirely under my control. You can look at my entire [listening history](https://replay.simonemargio.dev) since I started using Navidrome along with ListenBrainz.
 *   **Navidrome:** robust, Subsonic-compatible server that indexes massive local music libraries and streams them with near zero latency to dedicated clients across any device.
