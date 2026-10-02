@@ -32,7 +32,6 @@ The current infrastructure runs a diverse stack of applications, categorized by 
 
 ### Core
 *   **Dockhand:** primary Stack Manager. The central configuration and management orchestrator for the homelab, streamlining container deployments and ensuring the infrastructure runs smoothly.
-*   **Homelable:** Custom homelab utility and labeling framework tailored for this specific environment.
 *   **Beszel:** telemetry engine. A highly efficient monitoring daemon that aggregates real time metrics on CPU, memory, and container health, maintaining historical performance data without consuming excessive system resources.
 *   **Cloudflare Tunnel:** edge gateway. Securely exposes internal services to the public internet via outbound connections, establishing a zero-trust architecture. This completely bypasses the need for port forwarding, protecting the internal network from external scanning.
 *   **Uptime Kuma:** a comprehensive monitoring stack. Uptime Kuma actively tracks the health and response times of all individual homelab services, while Healthchecks acts as a critical "dead man's switch," notifying me immediately if the entire server goes offline.
@@ -52,6 +51,7 @@ The current infrastructure runs a diverse stack of applications, categorized by 
 ### Productivity
 *   **ezbookkeeping:** streamlined accounting platform for tracking expenses, managing budgets, and analyzing personal cash flow without feeding financial data to external analytics engines.
 *   **FreshRSS:** in an era of algorithmic feeds, this service provides deterministic, chronological aggregation of news, blogs, and releases, putting information consumption entirely under my control.
+*   **Homelable:** Custom homelab utility and labeling framework tailored for this specific environment.
 
 
 For further information on the system, configuration, and hardware management, the [Homelab](https://simonemargio.dev/homelab/) webpage is always available.
