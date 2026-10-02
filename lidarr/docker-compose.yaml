@@ -1,0 +1,79 @@
+# ==============================================================================
+# Lidarr & Prowlarr
+# ==============================================================================
+# This stack deploys Lidarr (an automated music collection manager) along with 
+# Prowlarr. Together, they automate the searching, for albums and tracks that 
+# are no longer commercially available or are too expensive.
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # Lidarr (Music Manager)
+  # ----------------------------------------------------------------------------
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    restart: unless-stopped
+    environment:
+      # User and Group IDs for correct file permission mapping on the host.
+      # Ensures the container can safely read/write to the mounted directories.
+      - PUID=1000
+      - PGID=10
+      # Local timezone setting for accurate logs and scheduled tasks.
+      - TZ=Europe/Rome
+    volumes:
+      # Persistent storage for app configuration, settings, and internal database.
+      - /mnt/cache/container/appdata/lidarr:/config
+      # Target directory where the final, organized music library is stored and served.
+      - /mnt/hdd/simone/Backup/Music/navidrome:/navidrome_music
+      # Shared download directory. Lidarr imports downloaded tracks from here.
+      - /mnt/cache/media/Torrent:/downloads
+    ports:
+      # Exposes the Lidarr Web UI.
+      - 8686:8686
+    deploy:
+      resources:
+        limits:
+          # Hard limit to prevent memory exhaustion during intensive library scans.
+          memory: 4G
+    networks:
+      - container-share-net
+
+  # ----------------------------------------------------------------------------
+  # Prowlarr (Indexer Manager)
+  # ----------------------------------------------------------------------------
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=10
+      - TZ=Europe/Rome
+    volumes:
+      # Persistent configuration data for Prowlarr, stored alongside Lidarr's appdata.
+      - /mnt/cache/container/appdata/lidarr/prowlarr:/config
+    ports:
+      # Exposes the Prowlarr Web UI.
+      - 9696:9696
+    dns:
+      # Hardcoded public DNS servers (Cloudflare and Google).
+      # Used to bypass potential ISP-level DNS blocking on torrent/usenet indexers.
+      - 1.1.1.1
+      - 8.8.8.8
+    deploy:
+      resources:
+        limits:
+          # Restricts memory usage to keep the proxy lightweight.
+          memory: 1G
+    networks:
+      - container-share-net
+
+# ------------------------------------------------------------------------------
+# Network Definitions
+# ------------------------------------------------------------------------------
+networks:
+  container-share-net:
+    # Uses a pre-existing Docker network shared across multiple containers
+    # to allow easy cross-communication (e.g., passing downloads to a client).
+    external: true
