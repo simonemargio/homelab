@@ -1,0 +1,63 @@
+# ==============================================================================
+# Uptime Kuma Stack
+# ==============================================================================
+# Monitoring tool that keeps track of the availability and 
+# performance of services across your infrastructure. It provides real-time 
+# alerts and beautiful status pages, ensuring you are the first to know 
+# when a critical service or website goes down.
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # Uptime Kuma Application
+  # ----------------------------------------------------------------------------
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    container_name: uptime-kuma
+    restart: always
+    security_opt:
+      # Prevents the container processes from gaining additional privileges, 
+      # mitigating potential privilege escalation exploits.
+      - no-new-privileges:true
+    ports:
+      # Maps the internal web server port (3001) to the host (3001).
+      # Access locally via http://<YOUR_IP>:3001
+      - "3001:3001"
+    volumes:
+      # Persistent storage for the SQLite database, monitoring history, and settings.
+      # Placed on the NVMe cache pool to ensure fast read/write operations during 
+      # frequent ping sweeps and heartbeat checks.
+      - /mnt/cache/container/appdata/uptime-kuma:/app/data
+    environment:
+      # Localization ensures monitoring heartbeats, downtime logs, and alerts 
+      # accurately reflect the correct local time.
+      - TZ=Europe/Rome
+      # Sets default file permissions to ensure compatibility with host backup 
+      # scripts and file management.
+      - UMASK=0022
+    networks:
+      # Connects to the shared network, allowing a Cloudflare tunnel or reverse 
+      # proxy to securely route external traffic to this container for remote 
+      # dashboard administration and public status pages.
+      - container-share-net
+    healthcheck:
+      # Verifies the internal Node.js web server is responding successfully.
+      test: ["CMD", "curl", "-f", "http://localhost:3001"]
+      interval: 30s
+      retries: 3
+      start_period: 10s
+      timeout: 5s
+    logging:
+      # Implements log rotation to prevent the container's log file from 
+      # growing indefinitely and consuming host disk space.
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ------------------------------------------------------------------------------
+# Network Definitions
+# ------------------------------------------------------------------------------
+networks:
+  container-share-net:
+    external: true
