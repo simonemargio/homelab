@@ -21,9 +21,10 @@ This repository serves as the architectural blueprint for my simple homelab. It'
 
 The repository structure is strictly organizational. Each directory corresponds to a discrete service or a logical grouping of containers. 
 
-*   **Service Directories:** each folder (e.g., `beszel`, `forgejo`) corresponds to a discrete service or a logical grouping of containers. Inside these directories:
+*   **Service Directories:** each folder (e.g., `beszel`, `dockhand`) corresponds to a discrete service or a logical grouping of containers. Inside these directories:
     *   `docker-compose.yml`: the declarative configuration defining the service, dependencies, network routing, and persistent volumes.
     *   `.env-example`: a template containing required environment variables for quick deployment.
+*   **`archive/`**: a historical vault containing configurations for services that were previously deployed but have since been retired from the active stack to reduce maintenance overhead.
 *   **`assets/`**: houses static files, images, and the official Maya logo.
 *   **`script/`**: contains automation and utility scripts.
 
@@ -37,7 +38,6 @@ The current infrastructure runs a diverse stack of applications, categorized by 
 *   **Uptime Kuma:** a comprehensive monitoring stack. Uptime Kuma actively tracks the health and response times of all individual homelab services, while Healthchecks acts as a critical "dead man's switch," notifying me immediately if the entire server goes offline.
 
 ### Security & Data Integrity
-*   **Forgejo:** git instance that serves as the definitive repository for my personal codebase, scripts, and documentation. Keeping these assets locally provides a trusted source of truth for the system, enables versioned and auditable changes, and avoids exposing sensitive operational details to third-party cloud services.
 *   **Kopia:** backup orchestrator. It handles zero-knowledge, deduplicated, and end-to-end encrypted snapshots, shipping all homelab data to an offsite Hetzner storage box to ensure rapid disaster recovery against local hardware failures.
 *   **Vaultwarden:** lightweight, Rust-based implementation of the Bitwarden API that securely manages credentials and sensitive strings locally, entirely severing reliance on cloud-based password managers.
 
@@ -49,9 +49,7 @@ The current infrastructure runs a diverse stack of applications, categorized by 
 *   **qBittorrent:** A containerized torrent client utilized for retrieving and seeding large datasets and distributions.
 
 ### Productivity
-*   **ezbookkeeping:** streamlined accounting platform for tracking expenses, managing budgets, and analyzing personal cash flow without feeding financial data to external analytics engines.
 *   **FreshRSS:** in an era of algorithmic feeds, this service provides deterministic, chronological aggregation of news, blogs, and releases, putting information consumption entirely under my control.
 *   **Homelable:** Custom homelab utility and labeling framework tailored for this specific environment.
-
 
 For further information on the system, configuration, and hardware management, the [Homelab](https://simonemargio.dev/homelab/) webpage is always available.
