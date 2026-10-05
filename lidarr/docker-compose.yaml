@@ -11,7 +11,7 @@ services:
   # Lidarr (Music Manager)
   # ----------------------------------------------------------------------------
   lidarr:
-    image: lscr.io/linuxserver/lidarr:latest
+    image: lscr.io/linuxserver/lidarr:nightly
     container_name: lidarr
     restart: unless-stopped
     environment:
@@ -66,6 +66,28 @@ services:
         limits:
           # Restricts memory usage to keep the proxy lightweight.
           memory: 1G
+    networks:
+      - container-share-net
+
+  # ----------------------------------------------------------------------------
+  # Slskd (Soulseek Client)
+  # ----------------------------------------------------------------------------
+  slskd:
+    image: slskd/slskd
+    container_name: slskd
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=10
+      - TZ=Europe/Rome
+      - SLSKD_REMOTE_CONFIGURATION=true
+    volumes:
+      - /mnt/cache/container/appdata/slskd/data:/app
+      - /mnt/cache/media/Torrent/slskd:/app/downloads
+      - /mnt/cache/container/appdata/slskd/incomplete:/app/incomplete
+      - /mnt/hdd/simone/Backup/Music/navidrome:/app/share:ro
+    ports:
+      - "5030:5030"
     networks:
       - container-share-net
 
