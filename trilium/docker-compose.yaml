@@ -1,0 +1,69 @@
+# ==============================================================================
+# TriliumNext Notes Stack
+# ==============================================================================
+# This stack deploys TriliumNext (a hierarchical note-taking application) 
+# alongside a dedicated Cloudflare tunnel. The architecture places both 
+# containers in a private, isolated bridge network, allowing secure external 
+# access via Cloudflare Zero Trust without requiring port forwarding on the 
+# router or exposing the app to the broader local network.
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # TriliumNext (Knowledge Base)
+  # ----------------------------------------------------------------------------
+  trilium:
+    image: triliumnext/trilium:1.106.0
+    container_name: trilium
+    restart: unless-stopped
+    security_opt:
+      # Prevents the container processes from gaining additional privileges, 
+      # mitigating potential privilege escalation exploits.
+      - no-new-privileges:true
+    environment:
+      # Defines the local time zone for accurate note timestamps.
+      - TZ=Europe/Rome
+    ports:
+      # Binds port 8080 to the host for local LAN access. 
+      # NOTE: If you strictly want access ONLY via Cloudflare, comment out 
+      # or remove this section to keep the app completely isolated.
+      - '8080:8080'
+    volumes:
+      # Unraid specific path for persistent app data (SQLite DB, documents, config).
+      # Mapped to the NVMe cache pool for high IOPS performance.
+      - /mnt/cache/container/appdata/trilium/data:/home/node/trilium-data
+    networks:
+      - trilium-tunnel-net
+
+  # ----------------------------------------------------------------------------
+  # Dedicated Cloudflared Tunnel
+  # ----------------------------------------------------------------------------
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared-trilium
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      # Authentication token pulled from the .env file.
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+      # Exposes metrics on port 60123 internally for the healthcheck.
+      - TUNNEL_METRICS=0.0.0.0:60123
+    networks:
+      - trilium-tunnel-net
+    healthcheck:
+      # Verifies the tunnel is active by querying the local metrics endpoint.
+      test: ["CMD", "cloudflared", "tunnel", "ready"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+      start_interval: 5s
+
+# ------------------------------------------------------------------------------
+# Network Definitions
+# ------------------------------------------------------------------------------
+networks:
+  trilium-tunnel-net:
+    # Notice this is NOT "external: true". This creates a private, isolated 
+    # bridge network specifically and exclusively for Trilium and its tunnel.
+    driver: bridge
