@@ -11,4 +11,5 @@ The configurations (`docker-compose.yml`, `.env-example`, and related scripts) k
 
 *   **Forgejo:** previously served as the definitive local git repository for personal codebase and documentation. It was retired in favor of moving back to a managed external platform (GitHub) to eliminate the friction of maintaining split codebases, managing local Git databases, etc.
 *   **ezbookkeeping:** initially deployed for local personal finance tracking. It was sunsetted because the friction of manual transaction entry outweighed the benefits of self-hosting. Tracking finances was moved to a native, multi-platform dedicated application to reduce mental load and improve consistency.
+*   **Trilium:** temporarily archived in order to better define a potential migration path from Obsidian.
 *   **qBittorrent (Standalone):** previously utilized as a general-purpose, manually managed torrent client.
