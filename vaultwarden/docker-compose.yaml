@@ -20,7 +20,7 @@ services:
   vaultwarden:
     # Pinned to a specific version for critical security/stability. 
     # Password managers should never auto-update to 'latest' blindly.
-    image: vaultwarden/server:1.37.3
+    image: vaultwarden/server:1.37.4
     container_name: vaultwarden
     restart: unless-stopped
     security_opt:
