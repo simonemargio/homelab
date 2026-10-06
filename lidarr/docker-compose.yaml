@@ -1,9 +1,9 @@
 # ==============================================================================
-# Lidarr & Prowlarr
+# Music stack
 # ==============================================================================
 # This stack deploys Lidarr (an automated music collection manager) along with 
-# Prowlarr. Together, they automate the searching, for albums and tracks that 
-# are no longer commercially available or are too expensive.
+# Prowlarr, slskd, and qBittorrent. Together, they automate the searching, for
+# albums and tracks that are no longer commercially available or are too expensive
 # ==============================================================================
 
 services:
@@ -11,23 +11,27 @@ services:
   # Lidarr (Music Manager)
   # ----------------------------------------------------------------------------
   lidarr:
-    image: lscr.io/linuxserver/lidarr:latest
+    image: lscr.io/linuxserver/lidarr:nightly
     container_name: lidarr
     restart: unless-stopped
+    security_opt:
+      # Prevents the container processes from gaining additional privileges, 
+      # mitigating potential privilege escalation exploits.
+      - no-new-privileges:true
     environment:
       # User and Group IDs for correct file permission mapping on the host.
       # Ensures the container can safely read/write to the mounted directories.
-      - PUID=1000
-      - PGID=10
+      - PUID=${PUID}
+      - PGID=${PGID}
       # Local timezone setting for accurate logs and scheduled tasks.
       - TZ=Europe/Rome
     volumes:
       # Persistent storage for app configuration, settings, and internal database.
-      - /mnt/cache/container/appdata/lidarr:/config
+      - ${LIDARR_PATH}:/config
       # Target directory where the final, organized music library is stored and served.
-      - /mnt/hdd/simone/Backup/Music/navidrome:/navidrome_music
+      - ${NAVIDROME_MUSIC_PATH}:/navidrome_music
       # Shared download directory. Lidarr imports downloaded tracks from here.
-      - /mnt/cache/media/Torrent:/downloads
+      - ${DOWNLOAD_TORRENT_PATH}:/downloads
     ports:
       # Exposes the Lidarr Web UI.
       - 8686:8686
@@ -46,13 +50,17 @@ services:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
     restart: unless-stopped
+    security_opt:
+      # Prevents the container processes from gaining additional privileges, 
+      # mitigating potential privilege escalation exploits.
+      - no-new-privileges:true
     environment:
-      - PUID=1000
-      - PGID=10
+      - PUID=${PUID}
+      - PGID=${PGID}
       - TZ=Europe/Rome
     volumes:
       # Persistent configuration data for Prowlarr, stored alongside Lidarr's appdata.
-      - /mnt/cache/container/appdata/lidarr/prowlarr:/config
+      - ${LIDARR_PATH}/prowlarr:/config
     ports:
       # Exposes the Prowlarr Web UI.
       - 9696:9696
@@ -66,6 +74,93 @@ services:
         limits:
           # Restricts memory usage to keep the proxy lightweight.
           memory: 1G
+    networks:
+      - container-share-net
+
+  # ----------------------------------------------------------------------------
+  # Slskd (Soulseek Client)
+  # ----------------------------------------------------------------------------
+  slskd:
+    image: slskd/slskd
+    container_name: slskd
+    restart: unless-stopped
+    security_opt:
+      # Prevents the container processes from gaining additional privileges, 
+      # mitigating potential privilege escalation exploits.
+      - no-new-privileges:true
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=Europe/Rome
+      # Enables modifying advanced settings directly from the Web UI.
+      - SLSKD_REMOTE_CONFIGURATION=true
+    volumes:
+      # Persistent storage for slskd configuration and database.
+      - ${LIDARR_PATH}/slskd/data:/app
+      # Dedicated download directory for Soulseek files.
+      - ${DOWNLOAD_SLSKD_PATH}:/app/downloads
+      # Temporary storage for incomplete downloads.
+      - ${LIDARR_PATH}/slskd/incomplete:/app/incomplete
+      # Read-only mount of your music library to share on the Soulseek network.
+      - ${NAVIDROME_MUSIC_PATH}:/app/share:ro
+    ports:
+      - "5030:5030"
+    networks:
+      - container-share-net
+
+  # ----------------------------------------------------------------------------
+  # qBittorrent Application
+  # ----------------------------------------------------------------------------
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    security_opt:
+      # Prevents the container processes from gaining additional privileges, 
+      # mitigating potential privilege escalation exploits.
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          # CRITICAL: Torrent clients cache heavily in RAM to reduce disk I/O. 
+          # Without a hard limit, qBittorrent can consume all available host memory 
+          # during high-speed downloads of massive torrents, potentially crashing 
+          # the server. This caps it safely at 2GB.
+          memory: 2G
+    environment:
+      # PUID (99) and PGID (100) match Unraid's 'nobody' user and 'users' group. 
+      # This ensures downloaded files have the correct ownership and can be 
+      # modified/moved by the host or other containers (like media managers).
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=Etc/UTC
+      # Explicitly defines the internal ports for the application.
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=6881
+    volumes:
+      # Persistent storage for qBittorrent's configuration, fastresume data, 
+      # and temporary state files.
+      - ${LIDARR_PATH}/qbittorrent/appdata:/config
+      # The destination folder for downloaded files.
+      # Notice this points to '/mnt/cache/...'. Downloading directly to the NVMe 
+      # cache pool prevents mechanical HDDs from constantly spinning and thrashing 
+      # during thousands of random small write operations (typical of BitTorrent).
+      - ${DOWNLOAD_TORRENT_PATH}:/downloads
+    ports:
+      # Maps the web interface to the host.
+      # Access locally via http://<YOUR_IP>:8080
+      - 8080:8080
+      # Maps the TCP and UDP ports required for peer-to-peer communication, 
+      # Distributed Hash Table (DHT), and peer discovery. 
+      # (Note: For optimal speeds, port 6881 should typically be forwarded 
+      # on your physical router).
+      - 6881:6881
+      - 6881:6881/udp
+    # Gives the container 10 seconds to gracefully close peer connections and 
+    # write its 'fastresume' data to disk before Docker kills the process. 
+    # This prevents the client from having to painstakingly "re-check" massive 
+    # files upon the next startup.
+    stop_grace_period: "10s"
     networks:
       - container-share-net
 

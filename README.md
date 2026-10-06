@@ -42,7 +42,11 @@ The current infrastructure runs a diverse stack of applications, categorized by 
 *   **Vaultwarden:** lightweight, Rust-based implementation of the Bitwarden API that securely manages credentials and sensitive strings locally, entirely severing reliance on cloud-based password managers.
 
 ### Media
-*   **Lidarr:** automated music collection manager and my entry into the *arr ecosystem. It excels at keeping the local library meticulously organized, identifying missing albums, and monitoring upcoming releases via calendar integration. While I strongly advocate for [acquiring high-quality music](https://simonemargio.dev/log/navidrome/#music) in ways that support artists, Lidarr serves as a pragmatic tool primarily dedicated to sourcing and archiving albums that are out of print, no longer commercially available, or prohibitively expensive.
+*   **Music stack:** a comprehensive, automated ecosystem for music collection and management. While I strongly advocate for [acquiring high-quality music](https://simonemargio.dev/log/navidrome/#music) in ways that support artists, this stack serves as a pragmatic toolchain primarily dedicated to sourcing and archiving albums that are out of print, no longer commercially available, or prohibitively expensive.
+    *   **Lidarr:** It excels at keeping the local library meticulously organized, identifying missing albums.
+    *   **Prowlarr:** acts as the central indexer manager.
+    *   **Slskd:** soulseek client integrated to hunt down rare, underground, or user-shared tracks that traditional indexers miss.
+    *   **qBittorrent**: dedicated torrent client exclusively configured to handle peer-to-peer downloads for this stack, keeping I/O operations optimized on the NVMe cache.
 *   **Kavita:** digital archival platform. It acts as a highly optimized reading server for ebooks, comics, and manga, featuring a sophisticated metadata engine and seamless cross device synchronization.
 *   **Koito:** modern scrobbler. A fast, themeable server to explore listening patterns, track favorite artists, and relay scrobbles to other platforms keeping listening data entirely under my control. You can look at my entire [listening history](https://replay.simonemargio.dev) since I started using Navidrome along with ListenBrainz.
 *   **Navidrome:** robust, Subsonic-compatible server that indexes massive local music libraries and streams them with near zero latency to dedicated clients across any device.
