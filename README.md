@@ -54,6 +54,5 @@ The current infrastructure runs a diverse stack of applications, categorized by 
 
 ### Productivity
 *   **FreshRSS:** in an era of algorithmic feeds, this service provides deterministic, chronological aggregation of news, blogs, and releases, putting information consumption entirely under my control.
-*   **Homelable:** Custom homelab utility and labeling framework tailored for this specific environment.
 
 For further information on the system, configuration, and hardware management, the [Homelab](https://simonemargio.dev/homelab/) webpage is always available.
