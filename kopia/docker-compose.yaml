@@ -39,6 +39,7 @@ services:
       - KOPIA_PASSWORD=${KOPIA_PASSWORD}
       - KOPIA_SERVER_USERNAME=${KOPIA_SERVER_USERNAME}
       - KOPIA_SERVER_PASSWORD=${KOPIA_SERVER_PASSWORD}
+      - RCLONE_CONFIG=/root/.config/rclone/rclone.conf
     command:
       - server
       - start
@@ -49,6 +50,9 @@ services:
       # Allows Kopia to execute the custom pre-hook and post-hook 
       # scripts (e.g., to stop/start containers) before taking a snapshot.
       - --enable-actions
+      - --config-file=/app/config/repository.config
+      - --log-dir=/app/logs
+      - --cache-directory=/app/cache
     volumes:
       # --- Kopia Configuration & Operational Data ---
       # Mapped to the NVMe cache pool for maximum speed during index lookups.
