@@ -72,6 +72,12 @@ services:
       - /mnt/hdd/simone:/backup/simone:ro
       - /mnt/hdd/alfredo:/backup/alfredo:ro
       - /mnt/cache/container:/backup/container:ro
+
+      # --- Rclone Integration ---
+      # Map the Unraid Rclone executable into the container
+      - /usr/sbin/rclone:/bin/rclone:ro
+      # Map the Rclone configuration file
+      - /boot/config/plugins/rclone/.rclone.conf:/root/.config/rclone/rclone.conf:ro
     healthcheck:
       # Checks if the server is responding. A 401 (Unauthorized) response is 
       # actually considered healthy here, as it means the web server is running 
