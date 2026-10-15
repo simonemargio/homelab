@@ -75,7 +75,7 @@ services:
 
       # --- Rclone Integration ---
       # Map the Unraid Rclone executable into the container
-      - /usr/sbin/rclone:/bin/rclone:ro
+      - /usr/sbin/rcloneorig:/bin/rclone:ro
       # Map the Rclone configuration file
       - /boot/config/plugins/rclone/.rclone.conf:/root/.config/rclone/rclone.conf:ro
     healthcheck:
