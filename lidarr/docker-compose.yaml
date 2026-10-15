@@ -2,8 +2,9 @@
 # Music stack
 # ==============================================================================
 # This stack deploys Lidarr (an automated music collection manager) along with 
-# Prowlarr, slskd, and qBittorrent. Together, they automate the searching, for
-# albums and tracks that are no longer commercially available or are too expensive
+# Prowlarr, slskd, qBittorrent, and Sonobarr. Together, they automate the searching, 
+# discovery, and downloading of albums and tracks that are no longer commercially 
+# available or are too expensive.
 # ==============================================================================
 
 services:
@@ -161,6 +162,52 @@ services:
     # This prevents the client from having to painstakingly "re-check" massive 
     # files upon the next startup.
     stop_grace_period: "10s"
+    networks:
+      - container-share-net
+
+  # ----------------------------------------------------------------------------
+  # Sonobarr (Artist Discovery & Recommendations)
+  # ----------------------------------------------------------------------------
+  sonobarr:
+    image: ghcr.io/dodelidoo-labs/sonobarr:latest
+    container_name: sonobarr
+    restart: unless-stopped
+    security_opt:
+      # Applied for consistency with the rest of the stack to prevent privilege escalation.
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=Europe/Rome
+      # Encryption key for internal sessions and database protection.
+      - SECRET_KEY=${SECRET_KEY}
+      # Connection details to allow Sonobarr to communicate with Lidarr API.
+      - LIDARR_ADDRESS=${LIDARR_ADDRESS}
+      - LIDARR_API_KEY=${LIDARR_API_KEY}
+      - ROOT_FOLDER_PATH=${ROOT_FOLDER_PATH}
+      - QUALITY_PROFILE_ID=${QUALITY_PROFILE_ID}
+      - METADATA_PROFILE_ID=${METADATA_PROFILE_ID}
+      - SEARCH_FOR_MISSING_ALBUMS=${SEARCH_FOR_MISSING_ALBUMS}
+      # Last.fm API credentials.
+      - LAST_FM_API_KEY=${LAST_FM_API_KEY}
+      - LAST_FM_API_SECRET=${LAST_FM_API_SECRET}
+      # Administrator credentials for the Sonobarr interface.
+      - SONOBARR_SUPERADMIN_USERNAME=${SONOBARR_SUPERADMIN_USERNAME}
+      - SONOBARR_SUPERADMIN_PASSWORD=${SONOBARR_SUPERADMIN_PASSWORD}
+      - SONOBARR_SUPERADMIN_DISPLAY_NAME=${SONOBARR_SUPERADMIN_DISPLAY_NAME}
+      - SONOBARR_SUPERADMIN_RESET=${SONOBARR_SUPERADMIN_RESET}
+    volumes:
+      # Persistent configuration and internal database for Sonobarr.
+      - ${SONOBARR_CONFIG_PATH}:/sonobarr/config
+      # Mounted as Read-Only (:ro) since Sonobarr only needs to scan existing 
+      # music for recommendations, protecting your library from accidental modification.
+      - ${NAVIDROME_MUSIC_PATH}:/navidrome_music:ro
+    ports:
+      - "5001:5000"
     networks:
       - container-share-net
 
