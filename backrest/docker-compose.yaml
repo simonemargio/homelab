@@ -1,0 +1,52 @@
+services:
+  backrest:
+    image: ghcr.io/garethgeorge/backrest:latest
+    container_name: backrest
+    hostname: backrest
+    restart: unless-stopped
+    ports:
+      - "9898:9898"
+    volumes:
+      # --- Backrest Configuration & Operational Data ---
+      # Mapped to the NVMe cache pool for maximum speed during index lookups.
+      - /mnt/cache/container/appdata/backrest/data:/data
+      - /mnt/cache/container/appdata/backrest/config:/config
+      - /mnt/cache/container/appdata/backrest/cache:/cache
+      - /mnt/cache/container/appdata/backrest/tmp:/tmp
+
+      # --- Automation Scripts & Docker Socket ---
+      # Mounts the custom scripts used to freeze containers.
+      - /mnt/cache/container/appdata/backrest/script:/script:ro
+      # Grants Backrest read/write access to the Docker daemon. This is required 
+      # so the pre/post hook scripts can issue 'docker stop' and 'docker start' 
+      # commands to guarantee database consistency during backups.
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+
+      # --- Source Data to Backup ---
+      # The actual data directories Restic will snapshot. 
+      # Mounted as Read-Only (:ro) to absolutely guarantee that the backup 
+      # software cannot accidentally modify or corrupt the source data.
+      - /mnt/hdd/simone:/backup/simone:ro
+      - /mnt/hdd/alfredo:/backup/alfredo:ro
+      - /mnt/cache/container:/backup/container:ro
+
+      # --- Rclone Integration ---
+      # Map the Unraid Rclone executable into the container
+      - /usr/sbin/rcloneorig:/bin/rclone:ro
+      # Map the Rclone configuration file
+      - /boot/config/plugins/rclone/.rclone.conf:/root/.config/rclone/rclone.conf:ro
+    environment:
+      - BACKREST_DATA=/data
+      - BACKREST_CONFIG=/config/config.json
+      - XDG_CACHE_HOME=/cache
+      - TMPDIR=/tmp
+      - TZ=Europe/Rome
+    healthcheck:
+      # Checks if the server is responding. A 401 (Unauthorized) response is 
+      # actually considered healthy here, as it means the web server is running 
+      # and correctly enforcing authentication.
+      test: ["CMD-SHELL", "code=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9898/); [ \"$$code\" = \"200\" ] || [ \"$$code\" = \"401\" ]"]
+      interval: 2m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
