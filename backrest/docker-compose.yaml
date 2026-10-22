@@ -35,6 +35,7 @@ services:
       # software cannot accidentally modify or corrupt the source data.
       - /mnt/hdd/simone:/backup/simone:ro
       - /mnt/hdd/alfredo:/backup/alfredo:ro
+      - /mnt/hdd/tiziana:/backup/tiziana:ro
       - /mnt/cache/container:/backup/container:ro
 
       # --- Rclone Integration ---
