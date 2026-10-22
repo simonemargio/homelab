@@ -1,7 +1,14 @@
+# ----------------------------------------------------------------------------
+# Backrest Application (Restic Web GUI & Orchestrator)
+# ----------------------------------------------------------------------------
 services:
   backrest:
     image: ghcr.io/garethgeorge/backrest:latest
     container_name: backrest
+    # Backrest (and Restic under the hood) ties snapshot history to the machine's 
+    # hostname. By default, Docker assigns a random container ID as the hostname 
+    # upon recreation, which can fragment backup histories. Setting a static 
+    # hostname ensures continuity for incremental backups.
     hostname: backrest
     restart: unless-stopped
     ports:

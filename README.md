@@ -38,7 +38,7 @@ The current infrastructure runs a diverse stack of applications, categorized by 
 -   **Uptime Kuma:** a comprehensive monitoring stack. Uptime Kuma actively tracks the health and response times of all individual homelab services, while Healthchecks acts as a critical "dead man's switch," notifying me immediately if the entire server goes offline.
 
 ### Security & Data Integrity
--   **Kopia:** backup orchestrator. It handles zero-knowledge, deduplicated, and end-to-end encrypted snapshots, shipping all homelab data to an offsite Hetzner storage box to ensure rapid disaster recovery against local hardware failures.
+-   **Backrest:** backup orchestrator. It handles zero knowledge, deduplicated, and end to end encrypted snapshots, shipping all homelab data to an offsite Hetzner storage box to ensure rapid disaster recovery against local hardware failures.
 -   **Vaultwarden:** lightweight, Rust-based implementation of the Bitwarden API that securely manages credentials and sensitive strings locally, entirely severing reliance on cloud-based password managers.
 
 ### Media
