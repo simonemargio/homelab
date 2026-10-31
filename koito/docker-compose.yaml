@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
     environment:
       # Sets the default UI theme.
-      - KOITO_DEFAULT_THEME=midnight
+      - KOITO_DEFAULT_THEME=pearl
       # Uses Docker's internal DNS to reach Navidrome directly via 
       # the shared network (using the container name 'navidrome'), avoiding 
       # any external round-trips or need for public URLs.
